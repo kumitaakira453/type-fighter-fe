@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "postbuild": "cp build/index.html build/404.html"
+    "postbuild": "cp dist/index.html dist/404.html"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
