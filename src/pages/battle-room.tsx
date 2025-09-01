@@ -4,17 +4,23 @@ import { useNavigate } from "react-router";
 
 import appLogo from "/logo_title.png";
 
-const targetText = "hello world this is a typing battle game";
+const targetTexts = ["hello world", "this is a typing battle", "game start!"];
 
 function TypingBattle() {
   const navigate = useNavigate();
+
+  const [playerIndex, setPlayerIndex] = useState(0); // 自分の現在テキスト番号
+  const [opponentIndex, setOpponentIndex] = useState(0); // 相手の現在テキスト番号
   const [playerInput, setPlayerInput] = useState("");
   const [opponentInput, setOpponentInput] = useState("");
   const [gameOver, setGameOver] = useState(false);
   const [result, setResult] = useState<"win" | "lose" | null>(null);
-  const [countdown, setCountdown] = useState(3); // 開始前カウント
+  const [countdown, setCountdown] = useState(3);
 
-  // カウントダウン
+  const currentPlayerText = targetTexts[playerIndex];
+  const currentOpponentText = targetTexts[opponentIndex];
+
+  // 開始前カウントダウン
   useEffect(() => {
     if (countdown <= 0) return;
     const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
@@ -23,7 +29,7 @@ function TypingBattle() {
 
   // キー入力
   useEffect(() => {
-    if (countdown > 0 || gameOver) return; // カウント中は無効
+    if (countdown > 0 || gameOver) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key.length === 1) {
         setPlayerInput((prev) => prev + e.key);
@@ -39,27 +45,46 @@ function TypingBattle() {
   useEffect(() => {
     if (countdown > 0 || gameOver) return;
     const interval = setInterval(() => {
-      if (opponentInput.length < targetText.length) {
-        setOpponentInput((prev) => prev + targetText[prev.length]);
+      if (opponentInput.length < currentOpponentText.length) {
+        setOpponentInput((prev) => prev + currentOpponentText[prev.length]);
+      } else if (opponentIndex + 1 < targetTexts.length) {
+        setOpponentIndex(opponentIndex + 1);
+        setOpponentInput("");
       }
     }, 60);
     return () => clearInterval(interval);
-  }, [opponentInput, countdown, gameOver]);
+  }, [opponentInput, opponentIndex, countdown, gameOver, currentOpponentText]);
 
-  // 勝敗判定
+  // 自分の入力進捗管理
   useEffect(() => {
-    if (playerInput === targetText) {
-      setGameOver(true);
-      setResult("win");
-    } else if (opponentInput === targetText) {
-      setGameOver(true);
-      setResult("lose");
+    if (playerInput === currentPlayerText) {
+      if (playerIndex + 1 < targetTexts.length) {
+        setPlayerIndex(playerIndex + 1);
+        setPlayerInput("");
+      }
     }
-  }, [playerInput, opponentInput]);
 
-  // 入力済み部分の色付け
-  const renderText = (input: string) => {
-    return targetText.split("").map((char, idx) => {
+    // ゲーム終了判定
+    if (
+      (playerIndex === targetTexts.length - 1 &&
+        playerInput === currentPlayerText) ||
+      (opponentIndex === targetTexts.length - 1 &&
+        opponentInput === currentOpponentText)
+    ) {
+      setGameOver(true);
+      setResult(playerIndex >= opponentIndex ? "win" : "lose");
+    }
+  }, [
+    playerInput,
+    playerIndex,
+    opponentInput,
+    opponentIndex,
+    currentPlayerText,
+    currentOpponentText,
+  ]);
+
+  const renderText = (input: string, text: string) =>
+    text.split("").map((char, idx) => {
       if (idx < input.length) {
         const isCorrect = input[idx] === char;
         return (
@@ -70,13 +95,10 @@ function TypingBattle() {
             {char}
           </span>
         );
-      } else {
-        return <span key={idx}>{char}</span>;
       }
+      return <span key={idx}>{char}</span>;
     });
-  };
 
-  // カウントダウン中は大きく表示
   if (countdown > 0) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-800 via-purple-700 to-pink-600 text-white">
@@ -91,18 +113,33 @@ function TypingBattle() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-800 via-purple-700 to-pink-600 p-6 text-white">
       <img src={appLogo} alt="" className="w-80 mb-6" />
 
+      {/* 進捗表示 */}
+      <div className="flex justify-between w-full max-w-4xl mb-4 text-sm md:text-base text-gray-200">
+        <span>
+          You: {playerIndex + 1} / {targetTexts.length}
+        </span>
+        <span>
+          Opponent: {opponentIndex + 1} / {targetTexts.length}
+        </span>
+      </div>
+
       <div className="flex flex-col md:flex-row w-full max-w-4xl gap-6">
         {/* 自分 */}
-        <div className="flex-1 bg-white/10 p-4 rounded-lg shadow-md flex flex-col">
+        <div
+          className="flex-1 p-4 rounded-lg flex flex-col
+                bg-white/20 shadow-lg border-2 border-yellow-400"
+        >
           <h2 className="text-lg font-semibold mb-2">You</h2>
-          <div className="text-xl tracking-wide">{renderText(playerInput)}</div>
+          <div className="text-xl tracking-wide">
+            {renderText(playerInput, currentPlayerText)}
+          </div>
         </div>
 
         {/* 相手 */}
         <div className="flex-1 bg-white/10 p-4 rounded-lg shadow-md flex flex-col">
           <h2 className="text-lg font-semibold mb-2">Opponent</h2>
           <div className="text-xl tracking-wide">
-            {renderText(opponentInput)}
+            {renderText(opponentInput, currentOpponentText)}
           </div>
         </div>
       </div>
@@ -117,13 +154,7 @@ function TypingBattle() {
               <span className="text-red-400">You Lose! 💀</span>
             )}
           </div>
-          <PrimaryButton
-            onClick={() => {
-              navigate("/");
-            }}
-          >
-            Top
-          </PrimaryButton>
+          <PrimaryButton onClick={() => navigate("/")}>Top</PrimaryButton>
         </div>
       )}
     </div>
