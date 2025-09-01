@@ -1,7 +1,8 @@
 import LoadingDots from "@/components/LoadingDots";
 import PrimaryButton from "@/components/PrimaryButton";
+import { wsApiUrl } from "@/constants/urls";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import appLogo from "/logo_title.png";
 
@@ -11,10 +12,30 @@ export default function MatchingRoom() {
   const [selfReady, setSelfReady] = useState(false);
   const navigate = useNavigate();
 
-  // デモ用：2秒後にマッチング成功
+  const socketRef = useRef<WebSocket | null>(null);
+
+  const onMessage = (event: MessageEvent<string>) => {
+    const data = JSON.parse(event.data);
+    if (data.type === "matched") {
+      // FIXME:matchした相手の情報も欲しいところ
+      setMatched(true);
+    }
+    if (data.type === "close") {
+      console.log(data.message);
+    }
+  };
+
   useEffect(() => {
-    const timer = setTimeout(() => setMatched(true), 2000);
-    return () => clearTimeout(timer);
+    // #1.WebSocketオブジェクトを生成しサーバとの接続を開始
+    // FIXME:endpointの環境変数化
+    const websocket = new WebSocket(`${wsApiUrl}/matching-room`);
+    socketRef.current = websocket;
+    websocket.addEventListener("message", onMessage);
+
+    return () => {
+      websocket.close();
+      websocket.removeEventListener("message", onMessage);
+    };
   }, []);
 
   // 1秒後に相手も準備完了
