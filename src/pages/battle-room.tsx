@@ -86,19 +86,19 @@ function TypingBattle() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [countdown, gameOver]);
 
-  // // ダミー相手入力
-  // useEffect(() => {
-  //   if (countdown > 0 || gameOver) return;
-  //   const interval = setInterval(() => {
-  //     if (opponentInput.length < currentOpponentText.length) {
-  //       setOpponentInput((prev) => prev + currentOpponentText[prev.length]);
-  //     } else if (opponentIndex + 1 < targetTexts.length) {
-  //       setOpponentIndex(opponentIndex + 1);
-  //       setOpponentInput("");
-  //     }
-  //   }, 60);
-  //   return () => clearInterval(interval);
-  // }, [opponentInput, opponentIndex, countdown, gameOver, currentOpponentText]);
+  // ダミー相手入力
+  useEffect(() => {
+    if (countdown > 0 || gameOver) return;
+    const interval = setInterval(() => {
+      if (opponentInput.length < currentOpponentText.length) {
+        setOpponentInput((prev) => prev + currentOpponentText[prev.length]);
+      } else if (opponentIndex + 1 < targetTexts.length) {
+        setOpponentIndex(opponentIndex + 1);
+        setOpponentInput("");
+      }
+    }, 60);
+    return () => clearInterval(interval);
+  }, [opponentInput, opponentIndex, countdown, gameOver, currentOpponentText]);
 
   // 自分の入力進捗管理
   useEffect(() => {
