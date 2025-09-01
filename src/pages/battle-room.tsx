@@ -1,13 +1,13 @@
 import PrimaryButton from "@/components/PrimaryButton";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 
+import { apiUrl, wsApiUrl } from "@/constants/urls";
 import appLogo from "/logo_title.png";
-
-const targetTexts = ["hello world", "this is a typing battle", "game start!"];
 
 function TypingBattle() {
   const navigate = useNavigate();
+  const params = useParams();
 
   const [playerIndex, setPlayerIndex] = useState(0); // 自分の現在テキスト番号
   const [opponentIndex, setOpponentIndex] = useState(0); // 相手の現在テキスト番号
@@ -15,10 +15,55 @@ function TypingBattle() {
   const [opponentInput, setOpponentInput] = useState("");
   const [gameOver, setGameOver] = useState(false);
   const [result, setResult] = useState<"win" | "lose" | null>(null);
-  const [countdown, setCountdown] = useState(3);
+  const [countdown, setCountdown] = useState(0);
+  const [targetTexts, setTargetTexts] = useState<string[]>([]);
 
-  const currentPlayerText = targetTexts[playerIndex];
-  const currentOpponentText = targetTexts[opponentIndex];
+  const currentPlayerText = useMemo(() => {
+    return targetTexts[playerIndex] ?? "";
+  }, [targetTexts, playerIndex]);
+  const currentOpponentText = useMemo(() => {
+    return targetTexts[opponentIndex] ?? "";
+  }, [targetTexts, opponentIndex]);
+
+  const socketRef = useRef<WebSocket | null>(null);
+
+  const setUpGame = async () => {
+    const res = await fetch(`${apiUrl}/typing-texts`);
+    const data = await res.json();
+    setTargetTexts(
+      data.texts.map((ob: { id: number; text: string }) => ob.text)
+    );
+    socketRef.current?.send(JSON.stringify({ type: "ready" }));
+  };
+
+  useEffect(() => {
+    const websocket = new WebSocket(`${wsApiUrl}/battle-room/${params.roomId}`);
+    socketRef.current = websocket;
+    websocket.addEventListener("message", onMessage);
+    // FIXME:本来は並列でfetchも行うべき
+    websocket.addEventListener("open", () => {
+      setUpGame();
+    });
+    websocket.addEventListener("close", () => {
+      // TODO:相手が退出したことをまずは通知する
+      navigate("/matching-room");
+    });
+
+    return () => {
+      websocket.close();
+      websocket.removeEventListener("message", onMessage);
+    };
+  }, []);
+
+  const onMessage = (event: MessageEvent<string>) => {
+    const data = JSON.parse(event.data);
+    if (data.type === "start") {
+      setCountdown(3);
+    }
+    if (data.type === "close") {
+      console.log(data.message);
+    }
+  };
 
   // 開始前カウントダウン
   useEffect(() => {
@@ -41,19 +86,19 @@ function TypingBattle() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [countdown, gameOver]);
 
-  // ダミー相手入力
-  useEffect(() => {
-    if (countdown > 0 || gameOver) return;
-    const interval = setInterval(() => {
-      if (opponentInput.length < currentOpponentText.length) {
-        setOpponentInput((prev) => prev + currentOpponentText[prev.length]);
-      } else if (opponentIndex + 1 < targetTexts.length) {
-        setOpponentIndex(opponentIndex + 1);
-        setOpponentInput("");
-      }
-    }, 60);
-    return () => clearInterval(interval);
-  }, [opponentInput, opponentIndex, countdown, gameOver, currentOpponentText]);
+  // // ダミー相手入力
+  // useEffect(() => {
+  //   if (countdown > 0 || gameOver) return;
+  //   const interval = setInterval(() => {
+  //     if (opponentInput.length < currentOpponentText.length) {
+  //       setOpponentInput((prev) => prev + currentOpponentText[prev.length]);
+  //     } else if (opponentIndex + 1 < targetTexts.length) {
+  //       setOpponentIndex(opponentIndex + 1);
+  //       setOpponentInput("");
+  //     }
+  //   }, 60);
+  //   return () => clearInterval(interval);
+  // }, [opponentInput, opponentIndex, countdown, gameOver, currentOpponentText]);
 
   // 自分の入力進捗管理
   useEffect(() => {
@@ -99,18 +144,25 @@ function TypingBattle() {
       return <span key={idx}>{char}</span>;
     });
 
-  if (countdown > 0) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-800 via-purple-700 to-pink-600 text-white">
-        <span className="text-[10rem] md:text-[15rem] font-extrabold animate-pulse drop-shadow-lg">
-          {countdown}
-        </span>
-      </div>
-    );
-  }
+  // if (countdown > 0) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-800 via-purple-700 to-pink-600 text-white">
+  //       <span className="text-[10rem] md:text-[15rem] font-extrabold animate-pulse drop-shadow-lg">
+  //         {countdown}
+  //       </span>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-800 via-purple-700 to-pink-600 p-6 text-white">
+      {countdown > 0 && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-50">
+          <span className="text-[10rem] md:text-[15rem] font-extrabold animate-pulse drop-shadow-lg">
+            {countdown}
+          </span>
+        </div>
+      )}
       <img src={appLogo} alt="" className="w-80 mb-6" />
 
       {/* 進捗表示 */}

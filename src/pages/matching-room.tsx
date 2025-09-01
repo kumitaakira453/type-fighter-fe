@@ -20,14 +20,19 @@ export default function MatchingRoom() {
       // FIXME:matchした相手の情報も欲しいところ
       setMatched(true);
     }
+    if (data.type === "ready") {
+      setOpponentReady(true);
+    }
+    if (data.type === "start") {
+      const roomId = data.room_id;
+      navigate(`/battle-room/${roomId}`);
+    }
     if (data.type === "close") {
       console.log(data.message);
     }
   };
 
   useEffect(() => {
-    // #1.WebSocketオブジェクトを生成しサーバとの接続を開始
-    // FIXME:endpointの環境変数化
     const websocket = new WebSocket(`${wsApiUrl}/matching-room`);
     socketRef.current = websocket;
     websocket.addEventListener("message", onMessage);
@@ -41,19 +46,16 @@ export default function MatchingRoom() {
   // 1秒後に相手も準備完了
   useEffect(() => {
     if (!selfReady) return;
-    const timer = setTimeout(() => {
-      setOpponentReady(true);
-    }, 1000);
-    return () => clearTimeout(timer);
+    socketRef.current?.send(JSON.stringify({ type: "ready" }));
   }, [selfReady]);
 
   //相手の準備1秒後に画面遷移
   useEffect(() => {
-    if (!opponentReady) return;
-    const timer = setTimeout(() => {
-      navigate("/battle-room");
-    }, 1000);
-    return () => clearTimeout(timer);
+    // if (!opponentReady) return;
+    // const timer = setTimeout(() => {
+    //   navigate("/battle-room");
+    // }, 1000);
+    // return () => clearTimeout(timer);
   }, [opponentReady]);
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-800 via-purple-700 to-pink-600 text-white p-6 overflow-hidden">

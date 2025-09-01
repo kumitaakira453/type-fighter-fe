@@ -9,7 +9,7 @@ function App() {
     <Routes>
       <Route path="/" element={<FirstPage />} />
       <Route path="matching-room" element={<MatchingRoom />} />
-      <Route path="battle-room" element={<BattleRoom />} />
+      <Route path="battle-room/:roomId" element={<BattleRoom />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

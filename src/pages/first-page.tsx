@@ -1,19 +1,17 @@
 import PrimaryButton from "@/components/PrimaryButton";
-import { apiUrl } from "@/constants/urls";
-import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import appLogo from "/logo_title.png";
 
 export default function FirstPage() {
   const navigate = useNavigate();
-  useEffect(() => {
-    const fetchData = async () => {
-      const res = await fetch(`${apiUrl}/message`);
-      const data = await res.json();
-      console.log(data.message);
-    };
-    fetchData();
-  }, []);
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     const res = await fetch(`${apiUrl}/message`);
+  //     const data = await res.json();
+  //     console.log(data.message);
+  //   };
+  //   fetchData();
+  // }, []);
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-r from-purple-700 via-pink-600 to-red-500 text-white p-4">
       <img src={appLogo} alt="" className="w-80 mb-6" />
